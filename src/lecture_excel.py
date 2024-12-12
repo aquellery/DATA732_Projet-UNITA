@@ -19,8 +19,6 @@ def get_donnees_colonne(nom_feuille, liste_colonne):
         df = pd.read_excel(file_name, nom_feuille, header=1) 
     elif (nom_feuille=="S3 Match"):
         df = pd.read_excel(file_name, nom_feuille, header=4)
-    elif (nom_feuille=="TT & CI CONTACT"):
-        df = pd.read_excel(file_name, nom_feuille, header=4)
     elif (nom_feuille=="UNIV - S3"):
         df = pd.read_excel(file_name, nom_feuille, header=3)
     elif (nom_feuille=="DISSEMINATION"):
