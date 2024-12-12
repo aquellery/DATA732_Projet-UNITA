@@ -33,3 +33,39 @@ def get_donnees_colonne(nom_feuille, liste_colonne):
     #passage DataFrame format Excel
     dico=df_colonnes.to_dict()
     return dico
+
+def get_contact_tech_transfer(liste_colonne):
+    #On récupère des colonnes qui nous intéresse
+    nom_feuille="TT & CI CONTACT"
+    df = pd.read_excel(file_name, nom_feuille, header=4, nrows=(11))
+        
+    df_colonnes=df[liste_colonne]
+    print(df)
+    #passage DataFrame format Excel
+    dico=df_colonnes.to_dict()
+    return 
+
+def get_contact_company_internship(liste_colonne):
+    #On récupère des colonnes qui nous intéresse
+    nom_feuille="TT & CI CONTACT"
+    df = pd.read_excel(file_name, nom_feuille, header=19, nrows=(11))
+        
+    df_colonnes=df[liste_colonne]
+    print(df)
+    #passage DataFrame format Excel
+    dico=df_colonnes.to_dict()
+    return dico
+
+def get_contact_incubator(liste_colonne):
+    #On récupère des colonnes qui nous intéresse
+    nom_feuille="TT & CI CONTACT"
+    df = pd.read_excel(file_name, nom_feuille, header=34, nrows=(11))
+        
+    df_colonnes=df[liste_colonne]
+    print(df)
+    #passage DataFrame format Excel
+    dico=df_colonnes.to_dict()
+    return dico
+
+#Tests
+#print(get_contact_incubator(['PARTNER']))
