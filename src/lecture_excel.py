@@ -35,5 +35,3 @@ def get_donnees_colonne(nom_feuille, liste_colonne):
     #passage DataFrame format Excel
     dico=df_colonnes.to_dict()
     return dico
-
-print(get_donnees_colonne("DISSEMINATION", ['PARTNER (select)', 'DATES/PERIODICITY']))
