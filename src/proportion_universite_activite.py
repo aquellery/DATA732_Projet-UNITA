@@ -9,7 +9,8 @@ def map_multiple_partners(partner_value):
         partner_value = partner_value.strip()  # Supprimer les espaces 
 
         # Normaliser "Mont Blanc" et "Savoie Mont Blanc" sans tiret
-        partner_value = partner_value.replace("mont blanc", "mont-blanc")  # Remplacer Mont Blanc sans tiret par avec tiret
+        partner_value = partner_value.replace("Mont Blanc", "Mont-Blanc")  # Remplacer Mont Blanc sans tiret par avec tiret
+        partner_value = partner_value.replace("de Savoie", "Savoie")
 
     return [partner_value]  # Si c'est une seule université, on retourne directement la valeur
 
