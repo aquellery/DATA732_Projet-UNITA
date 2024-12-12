@@ -1,19 +1,25 @@
 import pandas as pd
 import plotly.express as px
+from lecture_excel import get_donnees_colonne
 
-# Charger le fichier Excel
-file_path = "Data\data_entreprises.xlsx"  # Remplacez par le chemin de votre fichier
-sheet_name = "spinoffs contacts"
+# Définir le chemin du fichier Excel
+file_name = '../Data/data_entreprises.xlsx'  # File name
 
-# Lire les données de la feuille
-df = pd.read_excel(file_path, sheet_name=sheet_name)
+# Définir le nom de la feuille et la colonne à extraire
+nom_feuille = "spinoffs contacts"
+liste_colonne = ["S3 LINKED SECTOR (Select)"]
 
-# Accéder à la colonne "S3 LINKED SECTORS (Select)"
-column_name = "S3 LINKED SECTOR (Select)"
-data = df[column_name].dropna()  # Supprimer les valeurs manquantes
+# Appeler la fonction pour récupérer les données
+donnees_secteurs = get_donnees_colonne(file_name, nom_feuille, liste_colonne)
+
+# Afficher les données récupérées
+print(donnees_secteurs)
+
+# Extraire les données de la colonne 'S3 LINKED SECTORS (Select)'
+secteurs_data = donnees_secteurs['S3 LINKED SECTOR (Select)']
 
 # Compter les occurrences des secteurs
-sector_counts = data.str.split(',').explode().str.strip().value_counts()
+sector_counts = pd.Series(secteurs_data).str.split(',').explode().str.strip().value_counts()
 
 # Calculer les proportions
 total = sector_counts.sum()
@@ -23,7 +29,7 @@ sector_proportions = (sector_counts / total) * 100
 fig = px.pie(
     names=sector_proportions.index,
     values=sector_proportions.values,
-    title="Répartition des secteurs (S3 LINKED SECTOR)"
+    title="Répartition des secteurs (S3 LINKED SECTORS)"
 )
 
 # Afficher le graphique
