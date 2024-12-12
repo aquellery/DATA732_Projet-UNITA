@@ -1,6 +1,6 @@
 import pandas as pd
 
-file_name = '../data/data_entreprises.xlsx'  # File name
+file_name = 'data/data_entreprises.xlsx'  # File name
 
 # ATTENTION : pour pouvoir récupérer des données il faut être sûre que le fichier Excel n'est pas ouvert
 def get_feuilles(nom_feuille):
