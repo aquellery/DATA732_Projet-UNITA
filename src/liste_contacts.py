@@ -34,4 +34,12 @@ def transform_dictionary(data):
 transformed_tech = transform_dictionary(dico_tech)
 transformed_company = transform_dictionary(dico_company)
 transformed_incubator = transform_dictionary(dico_incubator)
-print(transformed_tech)
+
+def combine_dico(): 
+    final_dico = {}
+    final_dico['TECH TRANSFER OFFICES'] = transformed_tech
+    final_dico['COMPANY INTERNSHIP PROGRAMMES'] = transformed_company
+    final_dico['INCUBATOR/ACCELERATOR'] = transformed_incubator
+    return final_dico
+
+print(combine_dico())
