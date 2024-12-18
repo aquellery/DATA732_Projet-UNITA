@@ -43,7 +43,7 @@ def get_contact_tech_transfer(liste_colonne):
     print(df)
     #passage DataFrame format Excel
     dico=df_colonnes.to_dict()
-    return 
+    return dico
 
 def get_contact_company_internship(liste_colonne):
     #On récupère des colonnes qui nous intéresse
