@@ -1,13 +1,12 @@
-import math
 import dash
 from dash import dcc, html, Input, Output
 import plotly.express as px
 import pandas as pd
-import random
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 from lecture_excel import get_feuilles
 from lecture_excel import get_donnees_colonne
+import json
 
 
 def transformer_adresse_coordonnees(ville, pays, code_postal):
@@ -24,43 +23,102 @@ def transformer_adresse_coordonnees(ville, pays, code_postal):
         print(f"Erreur lors de la géocodification de l'adresse {adresse}: {e}")
         pass
 
-def trier_univ_domaine(domaine, liste_univ):
-    pass
 
-data_univ=get_donnees_colonne("RIS", ['English Institution Name', 'Country Code', 'Name of the city','Postcode'])
+def get_infos_univ():
+    data_univ=get_donnees_colonne("RIS", ['Institution Name', 'English Institution Name', 'Country Code', 'Name of the city','Postcode', 'Region of establishment (NUTS 2)'])
 
-# on récupère les coordonnées de chaque universités
-coordonnees_univ=[]
-for univ in data_univ['English Institution Name']:
-    nom=data_univ['English Institution Name'][univ]
-    ville=data_univ['Name of the city'][univ]
-    pays=data_univ['Country Code'][univ]
-    code_postal=data_univ['Postcode'][univ]
-    coordonnees=transformer_adresse_coordonnees(ville, pays, code_postal)
-    coordonnees_univ.append({'Institution Name':nom, 'Coordonnees':coordonnees})
+    # on récupère les coordonnées de chaque universités
+    infos_univ=[]
+    for univ in data_univ['English Institution Name']:
+        nom=data_univ['Institution Name'][univ]
+        nom_english=data_univ['English Institution Name'][univ]
+        ville=data_univ['Name of the city'][univ]
+        pays=data_univ['Country Code'][univ]
+        code_postal=data_univ['Postcode'][univ]
+        region=data_univ['Region of establishment (NUTS 2)'][univ]
+        code=data_univ['Country Code'][univ]
+        coordonnees=transformer_adresse_coordonnees(ville, pays, code_postal)
+        infos_univ.append({'Institution Name':nom, 'English Name':nom_english, 'Country Code':code, 'Region':region, 'Coordonnees':coordonnees})
 
-df_coordonnees=pd.DataFrame(coordonnees_univ)
-print(df_coordonnees)
-# on met des coordonnées à 0,0 pour celles en None
-df_coordonnees['Coordonnees']=df_coordonnees['Coordonnees'].apply(lambda x: x if x is not None else [0, 0])
-df_coordonnees['latitude']=df_coordonnees['Coordonnees'].apply(lambda x:x[0])
-df_coordonnees['longitude']=df_coordonnees['Coordonnees'].apply(lambda x:x[1])
+    df_infos=pd.DataFrame(infos_univ)
+    print(df_infos)
+    # on met des coordonnées à 0,0 pour celles en None
+    df_infos['Coordonnees']=df_infos['Coordonnees'].apply(lambda x: x if x is not None else [0, 0])
+    df_infos['latitude']=df_infos['Coordonnees'].apply(lambda x:x[0])
+    df_infos['longitude']=df_infos['Coordonnees'].apply(lambda x:x[1])
 
-#pour centrer la carte
-centre_lat=df_coordonnees['latitude'].mean()
-centre_lon=df_coordonnees['longitude'].mean()
+    #pour centrer la carte
+    centre_lat=df_infos['latitude'].mean()
+    centre_lon=df_infos['longitude'].mean()
 
-# on récupère les différents domaines
-data_domaine=get_donnees_colonne("S3 Match", ["GENERAL THEMATIC"])
-data_domaine={ #nettoyage des données
-    'GENERAL THEMATIC': 
-    { key: value for key, value in data_domaine['GENERAL THEMATIC'].items()
-     if not (isinstance(value, float) and math.isnan(value))}
-}
+    return df_infos, centre_lat, centre_lon
 
-"""
-TODO : feuille S3 Match pour lier les univs aux domaines
-"""
+
+# associer les régions des universités aux domaines
+def region_univ_domaine():
+    match=get_feuilles("S3 Match")
+    df_match=pd.DataFrame(match)
+    df_match=df_match.drop(index=[0, 1, 2])
+    df_match.iloc[:, 0]=df_match.iloc[:, 0].ffill() # pour gerer la fusion des colonnes, si case vide on remet le nom qui était au dessus
+
+    regions=df_match.iloc[0:1] # on garde la 1e ligne pour avoir les régions
+    regions=regions.drop(regions.columns[0], axis=1) #on enlève la 1e colonne qui correspond aux domaines
+    for region in regions.columns :
+        #print(region)
+        #print(regions[region].iloc[0])
+        regions[region]=regions[region].iloc[0].split(' ')[0]
+
+    liste_regions=[regions[col].iloc[0] for col in regions.columns]
+    #print("liste région : ", liste_regions)
+    domaines=df_match.iloc[1:, 0]
+    #print('domaines', domaines)
+
+    region_domaine_dict={region: [] for region in liste_regions}
+    # parcourt des données
+    for i, region in enumerate(liste_regions):
+        for j, domaine in enumerate(domaines):
+            if j<18 : #limite du tableau 
+                cellule=df_match.iloc[j+1, i+1]
+                # on regarded si la cellule est remplie
+                if pd.notna(cellule) and str(cellule)!='':
+                    #print(i, region, j, domaine, cellule)
+                    region_domaine_dict[region].append(domaine)
+
+    # nettoyage des domaines en double
+    for region, domaines in region_domaine_dict.items():
+        region_domaine_dict[region]=list(set(domaines)) #on supprime les doublons 
+
+    return region_domaine_dict
+
+def associer_region_univ(df_infos, regions_domaine_dict):
+    df_infos["Domaines"]=df_infos["Region"].map(regions_domaine_dict)
+    return df_infos
+
+def filtrer_univ_domaine(domaine_selectionnes, data):
+    #print("Data sans filtre")
+    #print(data[['English Name', 'Domaine']])
+    #print("Filtre en fonction du domaine ", domaine_selectionnes)
+    if domaine_selectionnes:
+        if 'All' in domaine_selectionnes:
+            return data
+        else :
+            filtre=data[data['Domaine'].isin(domaine_selectionnes)]
+    else :
+        filtre=data
+    #print("Data filtrée")
+    #print(filtre[['English Name', 'Domaine']])
+    return filtre
+
+df_infos, centre_lat, centre_lon=get_infos_univ()
+regions_domaine_dict=region_univ_domaine()
+df_infos=associer_region_univ(df_infos, regions_domaine_dict)
+#print("associations infos")
+#print(df_info)
+data_domaine=sorted({domaine for domaines in df_infos['Domaines'] if isinstance(domaines, list) for domaine in domaines})
+
+# modification du data frame pour faciliter le filtrage par domaines
+data=df_infos.explode('Domaines')
+data.rename(columns={"Domaines": "Domaine"}, inplace=True) 
 
 
 app=dash.Dash(__name__)
@@ -70,7 +128,7 @@ app.layout=html.Div([
 
     dcc.Dropdown(
         id='choix_domaine',
-        options=[{'label': i, 'value': i} for i in data_domaine],
+        options=[{'label': 'All', 'value': 'All'}] + [{'label': i, 'value': i} for i in data_domaine],
         placeholder="Sélectionnez un domaine",
         multi=True
     ),
@@ -87,19 +145,16 @@ app.layout=html.Div([
 )
 
 def update_map(domaine_selectionnes):
-    """ TODO quand on aura le lien univ/domaine
-    if domaine_selectionnes:
-        data=df_data[df_data['Domaine'].isin(domaine_selectionnes)]
-    else:
-        data=df_data
-    """
+    data_filtree=filtrer_univ_domaine(domaine_selectionnes, data)
+    pays=data_filtree['Country Code'].unique()
 
+    # on affiche les universités
     fig=px.scatter_mapbox(
-        df_coordonnees,
+        data_filtree,
         lat='latitude',
         lon='longitude',
-        text='Institution Name',
-        color='Institution Name', # TODO : couleur en fonction des domaines plus tard
+        text='English Name',
+        color='English Name',
         zoom=3,
         title="Universités en foncion des domaines"
     )
