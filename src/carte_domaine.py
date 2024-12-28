@@ -6,19 +6,17 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 from lecture_excel import get_feuilles
 from lecture_excel import get_donnees_colonne
-import json
-
+import liste_contacts
+import time
 
 def transformer_adresse_coordonnees(ville, pays, code_postal):
     geolocator=Nominatim(user_agent="geoapi")
+    time.sleep(1) # pour pas surcharger l'API
     adresse=f"{code_postal}, {ville}, {pays}"
     try:
-        location = geolocator.geocode(adresse)
+        location=geolocator.geocode(adresse)
         if location:
             return (location.latitude, location.longitude)
-        else:
-            print(f"Erreur lors de la géocodification de l'adresse {adresse}")
-            pass
     except Exception as e:
         print(f"Erreur lors de la géocodification de l'adresse {adresse}: {e}")
         pass
@@ -120,6 +118,29 @@ data_domaine=sorted({domaine for domaines in df_infos['Domaines'] if isinstance(
 data=df_infos.explode('Domaines')
 data.rename(columns={"Domaines": "Domaine"}, inplace=True) 
 
+# ajout des données de contact
+contacts=liste_contacts.combine_dico()
+info_contact=[]
+for service_type, partners in contacts.items():
+    for partner, details in partners.items():
+        office, contact_person, contact_mail, other_details = details
+        info_contact.append({
+            'Institution Name': partner,
+            'Service Type': service_type,
+            'Office/Service Name': office,
+            'Contact Person': contact_person,
+            'Contact Mail': contact_mail,
+            'Other Contact Details': other_details
+        })
+data_contacts=pd.DataFrame(info_contact)
+# gestion des différences de noms
+correspondance={
+    "HES-SO": "Haute-école spécialisée de Suisse occidentale"
+}
+data_contacts['Institution Name']=data_contacts['Institution Name'].replace(correspondance)
+print("data contacts ", data_contacts)
+all_data=pd.merge(data, data_contacts, on='Institution Name', how='left')
+print("all data", all_data[['Institution Name', 'Domaine', 'Contact Person', 'Contact Mail']])
 
 app=dash.Dash(__name__)
 
@@ -145,19 +166,49 @@ app.layout=html.Div([
 )
 
 def update_map(domaine_selectionnes):
-    data_filtree=filtrer_univ_domaine(domaine_selectionnes, data)
+    data_filtree=filtrer_univ_domaine(domaine_selectionnes, all_data)
     pays=data_filtree['Country Code'].unique()
 
-    # on affiche les universités
-    fig=px.scatter_mapbox(
-        data_filtree,
-        lat='latitude',
-        lon='longitude',
-        text='English Name',
-        color='English Name',
-        zoom=3,
-        title="Universités en foncion des domaines"
-    )
+    if 'latitude' not in data_filtree.columns or 'longitude' not in data_filtree.columns:
+        print("Erreur: les colonnes 'latitude' ou 'longitude' manquent dans le DataFrame.")
+        return {}
+    
+
+    # on affiche les universités en fonction du domaine selectionné
+    if not domaine_selectionnes or 'All' in domaine_selectionnes:  #si on affiche tous les domaines
+            fig=px.scatter_mapbox(
+            data_filtree,
+            lat='latitude',
+            lon='longitude',
+            text='English Name',
+            color='English Name',
+            zoom=3,
+            title="Universités en foncion des domaines",
+            hover_data={
+                "English Name": True,
+                "latitude": False,  # Cache cette donnée de la boîte d'infos
+                "longitude": False  # Cache cette donnée également
+            }
+        )
+    else:
+        fig=px.scatter_mapbox(
+            data_filtree,
+            lat='latitude',
+            lon='longitude',
+            text='English Name',
+            color='English Name',
+            zoom=3,
+            title="Universités en foncion des domaines",
+            hover_data={
+                "English Name": True,
+                "Domaine": True,
+                "Contact Person": True,
+                "Contact Mail": True,
+                "Other Contact Details": True,
+                "latitude": False,  # Cache cette donnée de la boîte d'infos
+                "longitude": False  # Cache cette donnée également
+            }
+        )
 
     fig.update_layout(
         mapbox_style="carto-positron",

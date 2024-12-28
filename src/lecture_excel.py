@@ -40,7 +40,7 @@ def get_contact_tech_transfer(liste_colonne):
     df = pd.read_excel(file_name, nom_feuille, header=4, nrows=(11))
         
     df_colonnes=df[liste_colonne]
-    print(df)
+    #print(df)
     #passage DataFrame format Excel
     dico=df_colonnes.to_dict()
     return dico
@@ -51,7 +51,7 @@ def get_contact_company_internship(liste_colonne):
     df = pd.read_excel(file_name, nom_feuille, header=19, nrows=(11))
         
     df_colonnes=df[liste_colonne]
-    print(df)
+    #print(df)
     #passage DataFrame format Excel
     dico=df_colonnes.to_dict()
     return dico
@@ -62,7 +62,7 @@ def get_contact_incubator(liste_colonne):
     df = pd.read_excel(file_name, nom_feuille, header=34, nrows=(11))
         
     df_colonnes=df[liste_colonne]
-    print(df)
+    #print(df)
     #passage DataFrame format Excel
     dico=df_colonnes.to_dict()
     return dico

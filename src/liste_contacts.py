@@ -6,7 +6,7 @@ dico_tech = get_contact_tech_transfer(['PARTNER','OFFICE/SERVICE NAME','CONTACT 
 dico_company = get_contact_company_internship(['PARTNER','OFFICE/SERVICE NAME','CONTACT PERSON','CONTACT MAIL','OTHER CONTACT DETAILS'])
 dico_incubator = get_contact_incubator(['PARTNER','OFFICE/SERVICE NAME','CONTACT PERSON','CONTACT MAIL','OTHER CONTACT DETAILS'])
 
-print(dico_incubator)
+#print(dico_incubator)
 
 def transform_dictionary(data):
     """
@@ -27,6 +27,12 @@ def transform_dictionary(data):
         contact_mail = data['CONTACT MAIL'].get(index, None)
         other_details = data['OTHER CONTACT DETAILS'].get(index, None)
 
+        # convert NaN to 'Unavailable'
+        office="Unavailable" if pd.isna(office) else office
+        contact_person="Unavailable" if pd.isna(contact_person) else contact_person
+        contact_mail="Unavailable" if pd.isna(contact_mail) else contact_mail
+        other_details="Unavailable" if pd.isna(other_details) else other_details
+
         transformed[partner] = [office, contact_person, contact_mail, other_details]
     
     return transformed
@@ -42,4 +48,4 @@ def combine_dico():
     final_dico['INCUBATOR/ACCELERATOR'] = transformed_incubator
     return final_dico
 
-print(combine_dico())
+#print(combine_dico())
