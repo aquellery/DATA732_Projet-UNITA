@@ -9,116 +9,104 @@ from lecture_excel import get_donnees_colonne
 import liste_contacts
 import time
 
-def transformer_adresse_coordonnees(ville, pays, code_postal):
+def transform_adress_to_coordinates(city, country, postal_code):
     geolocator=Nominatim(user_agent="geoapi")
-    time.sleep(1) # pour pas surcharger l'API
-    adresse=f"{code_postal}, {ville}, {pays}"
+    time.sleep(1) # to avoid overloading the API
+    adress=f"{postal_code}, {city}, {country}"
     try:
-        location=geolocator.geocode(adresse)
+        location=geolocator.geocode(adress)
         if location:
             return (location.latitude, location.longitude)
     except Exception as e:
-        print(f"Erreur lors de la géocodification de l'adresse {adresse}: {e}")
+        print(f"Error geocoding the adresse= {adress}: {e}")
         pass
 
 
-def get_infos_univ():
-    data_univ=get_donnees_colonne("RIS", ['Institution Name', 'English Institution Name', 'Country Code', 'Name of the city','Postcode', 'Region of establishment (NUTS 2)'])
+def get_uni_info():
+    uni_data=get_donnees_colonne("RIS", ['Institution Name', 'English Institution Name', 'Country Code', 'Name of the city','Postcode', 'Region of establishment (NUTS 2)'])
 
-    # on récupère les coordonnées de chaque universités
-    infos_univ=[]
-    for univ in data_univ['English Institution Name']:
-        nom=data_univ['Institution Name'][univ]
-        nom_english=data_univ['English Institution Name'][univ]
-        ville=data_univ['Name of the city'][univ]
-        pays=data_univ['Country Code'][univ]
-        code_postal=data_univ['Postcode'][univ]
-        region=data_univ['Region of establishment (NUTS 2)'][univ]
-        code=data_univ['Country Code'][univ]
-        coordonnees=transformer_adresse_coordonnees(ville, pays, code_postal)
-        infos_univ.append({'Institution Name':nom, 'English Name':nom_english, 'Country Code':code, 'Region':region, 'Coordonnees':coordonnees})
+    # get coordinates for each university
+    uni_info=[]
+    for univ in uni_data['English Institution Name']:
+        name=uni_data['Institution Name'][univ]
+        english_name=uni_data['English Institution Name'][univ]
+        city=uni_data['Name of the city'][univ]
+        country=uni_data['Country Code'][univ]
+        postal_code=uni_data['Postcode'][univ]
+        region=uni_data['Region of establishment (NUTS 2)'][univ]
+        code=uni_data['Country Code'][univ]
+        coordinates=transform_adress_to_coordinates(city, country, postal_code)
+        uni_info.append({'Institution Name':name, 'English Name':english_name, 'Country Code':code, 'Region':region, 'Coordonnees':coordinates})
 
-    df_infos=pd.DataFrame(infos_univ)
-    print(df_infos)
-    # on met des coordonnées à 0,0 pour celles en None
+    df_infos=pd.DataFrame(uni_info)
+
+    # set coordinates to 0,0 for thoses that are None
     df_infos['Coordonnees']=df_infos['Coordonnees'].apply(lambda x: x if x is not None else [0, 0])
     df_infos['latitude']=df_infos['Coordonnees'].apply(lambda x:x[0])
     df_infos['longitude']=df_infos['Coordonnees'].apply(lambda x:x[1])
 
-    #pour centrer la carte
+    # map centering
     centre_lat=df_infos['latitude'].mean()
     centre_lon=df_infos['longitude'].mean()
 
     return df_infos, centre_lat, centre_lon
 
 
-# associer les régions des universités aux domaines
-def region_univ_domaine():
+# associate university regions with domains 
+def uni_region_domain():
     match=get_feuilles("S3 Match")
     df_match=pd.DataFrame(match)
     df_match=df_match.drop(index=[0, 1, 2])
-    df_match.iloc[:, 0]=df_match.iloc[:, 0].ffill() # pour gerer la fusion des colonnes, si case vide on remet le nom qui était au dessus
+    df_match.iloc[:, 0]=df_match.iloc[:, 0].ffill() # to handle column merging, if a cell is empty, we fill it with the value above
 
-    regions=df_match.iloc[0:1] # on garde la 1e ligne pour avoir les régions
-    regions=regions.drop(regions.columns[0], axis=1) #on enlève la 1e colonne qui correspond aux domaines
+    regions=df_match.iloc[0:1] # we keep the first row to get the regions
+    regions=regions.drop(regions.columns[0], axis=1) # we remove the first column that corresponds to the domains
     for region in regions.columns :
-        #print(region)
-        #print(regions[region].iloc[0])
         regions[region]=regions[region].iloc[0].split(' ')[0]
 
-    liste_regions=[regions[col].iloc[0] for col in regions.columns]
-    #print("liste région : ", liste_regions)
-    domaines=df_match.iloc[1:, 0]
-    #print('domaines', domaines)
+    region_list=[regions[col].iloc[0] for col in regions.columns]
+    domains=df_match.iloc[1:, 0]
 
-    region_domaine_dict={region: [] for region in liste_regions}
-    # parcourt des données
-    for i, region in enumerate(liste_regions):
-        for j, domaine in enumerate(domaines):
-            if j<18 : #limite du tableau 
+    region_domain_dict={region: [] for region in region_list}
+    # loop through the data
+    for i, region in enumerate(region_list):
+        for j, domain in enumerate(domains):
+            if j<18 : #limit of the table
                 cellule=df_match.iloc[j+1, i+1]
-                # on regarded si la cellule est remplie
+                # if the cell is empty
                 if pd.notna(cellule) and str(cellule)!='':
-                    #print(i, region, j, domaine, cellule)
-                    region_domaine_dict[region].append(domaine)
+                    region_domain_dict[region].append(domain)
 
-    # nettoyage des domaines en double
-    for region, domaines in region_domaine_dict.items():
-        region_domaine_dict[region]=list(set(domaines)) #on supprime les doublons 
+    # clean up duplicate domains
+    for region, domains in region_domain_dict.items():
+        region_domain_dict[region]=list(set(domains)) #remove duplicates
 
-    return region_domaine_dict
+    return region_domain_dict
 
-def associer_region_univ(df_infos, regions_domaine_dict):
-    df_infos["Domaines"]=df_infos["Region"].map(regions_domaine_dict)
+def associate_region_to_uni(df_infos, regions_domain_dict):
+    df_infos["Domains"]=df_infos["Region"].map(regions_domain_dict)
     return df_infos
 
-def filtrer_univ_domaine(domaine_selectionnes, data):
-    #print("Data sans filtre")
-    #print(data[['English Name', 'Domaine']])
-    #print("Filtre en fonction du domaine ", domaine_selectionnes)
-    if domaine_selectionnes:
-        if 'All' in domaine_selectionnes:
+def filter_uni_by_domain(selected_domains, data):
+    if selected_domains:
+        if 'All' in selected_domains:
             return data
         else :
-            filtre=data[data['Domaine'].isin(domaine_selectionnes)]
+            filtered=data[data['Domain'].isin(selected_domains)]
     else :
-        filtre=data
-    #print("Data filtrée")
-    #print(filtre[['English Name', 'Domaine']])
-    return filtre
+        filtered=data
+    return filtered
 
-df_infos, centre_lat, centre_lon=get_infos_univ()
-regions_domaine_dict=region_univ_domaine()
-df_infos=associer_region_univ(df_infos, regions_domaine_dict)
-#print("associations infos")
-#print(df_info)
-data_domaine=sorted({domaine for domaines in df_infos['Domaines'] if isinstance(domaines, list) for domaine in domaines})
+df_infos, centre_lat, centre_lon=get_uni_info()
+regions_domain_dict=uni_region_domain()
+df_infos=associate_region_to_uni(df_infos, regions_domain_dict)
+data_domain=sorted({domain for domains in df_infos['Domains'] if isinstance(domains, list) for domain in domains})
 
-# modification du data frame pour faciliter le filtrage par domaines
-data=df_infos.explode('Domaines')
-data.rename(columns={"Domaines": "Domaine"}, inplace=True) 
+# modify the dataframe to simplify filtering by domains
+data=df_infos.explode('Domains')
+data.rename(columns={"Domains": "Domain"}, inplace=True) 
 
-# ajout des données de contact
+# add contact data
 contacts=liste_contacts.combine_dico()
 info_contact=[]
 for service_type, partners in contacts.items():
@@ -133,80 +121,78 @@ for service_type, partners in contacts.items():
             'Other Contact Details': other_details
         })
 data_contacts=pd.DataFrame(info_contact)
-# gestion des différences de noms
+
+# handle name mismatches
 correspondance={
     "HES-SO": "Haute-école spécialisée de Suisse occidentale"
 }
 data_contacts['Institution Name']=data_contacts['Institution Name'].replace(correspondance)
-print("data contacts ", data_contacts)
 all_data=pd.merge(data, data_contacts, on='Institution Name', how='left')
-print("all data", all_data[['Institution Name', 'Domaine', 'Contact Person', 'Contact Mail']])
 
 app=dash.Dash(__name__)
 
 app.layout=html.Div([
-    html.H1("Carte des universités et des entreprises en fonction des domaines", style={'text-align': 'center'}),
+    html.H1("Map of Universities and Companies by Domain", style={'text-align': 'center'}),
 
     dcc.Dropdown(
-        id='choix_domaine',
-        options=[{'label': 'All', 'value': 'All'}] + [{'label': i, 'value': i} for i in data_domaine],
-        placeholder="Sélectionnez un domaine",
+        id='domain_choice',
+        options=[{'label': 'All', 'value': 'All'}] + [{'label': i, 'value': i} for i in data_domain],
+        placeholder="Select a domain",
         multi=True
     ),
 
     dcc.Graph(
-        id='affichage_carte'
+        id='map_display'
     )
 ])
 
-#Callback en fonction du domaine
+#Callback based on the selected domain
 @app.callback(
-    Output('affichage_carte', 'figure'),
-    [Input('choix_domaine', 'value')]
+    Output('map_display', 'figure'),
+    [Input('domain_choice', 'value')]
 )
 
-def update_map(domaine_selectionnes):
-    data_filtree=filtrer_univ_domaine(domaine_selectionnes, all_data)
-    pays=data_filtree['Country Code'].unique()
+def update_map(selected_domains):
+    filtered_data=filter_uni_by_domain(selected_domains, all_data)
 
-    if 'latitude' not in data_filtree.columns or 'longitude' not in data_filtree.columns:
-        print("Erreur: les colonnes 'latitude' ou 'longitude' manquent dans le DataFrame.")
+    if 'latitude' not in filtered_data.columns or 'longitude' not in filtered_data.columns:
+        print("Error: 'latitude' or 'longitude' columns are missing ")
         return {}
     
 
-    # on affiche les universités en fonction du domaine selectionné
-    if not domaine_selectionnes or 'All' in domaine_selectionnes:  #si on affiche tous les domaines
-            fig=px.scatter_mapbox(
-            data_filtree,
+    # display uni based on selected domain
+    if not selected_domains or 'All' in selected_domains:  #if displaying all domains
+        fig = px.scatter_mapbox(
+            filtered_data,
             lat='latitude',
             lon='longitude',
             text='English Name',
             color='English Name',
             zoom=3,
-            title="Universités en foncion des domaines",
+            title="Universities by Domains",
             hover_data={
                 "English Name": True,
-                "latitude": False,  # Cache cette donnée de la boîte d'infos
-                "longitude": False  # Cache cette donnée également
+                "latitude": False, # we don't want this data in the info box
+                "longitude": False # we don't want this data in the info box
             }
         )
     else:
         fig=px.scatter_mapbox(
-            data_filtree,
+            filtered_data,
             lat='latitude',
             lon='longitude',
             text='English Name',
             color='English Name',
             zoom=3,
-            title="Universités en foncion des domaines",
+            title="Universities by Domains",
             hover_data={
                 "English Name": True,
-                "Domaine": True,
+                "Domain": True,
                 "Contact Person": True,
                 "Contact Mail": True,
                 "Other Contact Details": True,
-                "latitude": False,  # Cache cette donnée de la boîte d'infos
-                "longitude": False  # Cache cette donnée également
+                "latitude": False, # we don't want this data in the info box
+                "longitude": False # we don't want this data in the info box
             }
         )
 
