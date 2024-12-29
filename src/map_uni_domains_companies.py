@@ -8,10 +8,10 @@ from lecture_excel import get_donnees_colonne
 import liste_contacts
 import time
 
-def transform_adress_to_coordinates(city, country, postal_code):
+def transform_adress_to_coordinates(city, country):
     geolocator=Nominatim(user_agent="geoapi")
     time.sleep(1) # to avoid overloading the API
-    adress=f"{postal_code}, {city}, {country}"
+    adress=f"{city}, {country}"
     try:
         location=geolocator.geocode(adress)
         if location:
@@ -22,7 +22,7 @@ def transform_adress_to_coordinates(city, country, postal_code):
 
 
 def get_uni_info():
-    uni_data=get_donnees_colonne("RIS", ['Institution Name', 'English Institution Name', 'Country Code', 'Name of the city','Postcode', 'Region of establishment (NUTS 2)'])
+    uni_data=get_donnees_colonne("RIS", ['Institution Name', 'English Institution Name', 'Country Code', 'Name of the city', 'Region of establishment (NUTS 2)'])
 
     # get coordinates for each university
     uni_info=[]
@@ -31,10 +31,9 @@ def get_uni_info():
         english_name=uni_data['English Institution Name'][univ]
         city=uni_data['Name of the city'][univ]
         country=uni_data['Country Code'][univ]
-        postal_code=uni_data['Postcode'][univ]
         region=uni_data['Region of establishment (NUTS 2)'][univ]
         code=uni_data['Country Code'][univ]
-        coordinates=transform_adress_to_coordinates(city, country, postal_code)
+        coordinates=transform_adress_to_coordinates(city, country)
         uni_info.append({'Institution Name':name, 'English Name':english_name, 'Country Code':code, 'Region':region, 'Coordonnees':coordinates})
 
     df_infos=pd.DataFrame(uni_info)
@@ -138,7 +137,6 @@ all_data=pd.merge(data, data_contacts, on='Institution Name', how='left')
 
 df_companies=get_companies_info()
 df_companies['PARTNER (SELECT)']=df_companies['PARTNER (SELECT)'].replace(correspondance)
-print(df_companies)
 
 app=dash.Dash(__name__)
 
@@ -244,9 +242,7 @@ def display_university_info(clickData, selected_domains):
 
     # companies with the selected domain
     if selected_domains and 'All' not in selected_domains:
-        print(selected_domains)
         companies_info=companies_info[companies_info['S3 LINKED SECTOR (Select)'].isin(selected_domains)]
-        print(companies_info)
 
     if companies_info.empty:
         if selected_domains and 'All' not in selected_domains:
@@ -266,10 +262,16 @@ def display_university_info(clickData, selected_domains):
 
         companies_details.append(company_info)
 
-    return html.Div([
-        html.H4(f"Companies linked to {selected_uni} : "),
-        html.Div(companies_details)
-    ])
+    if selected_domains and 'All' not in selected_domains: 
+        return html.Div([
+            html.H4(f"Companies linked to {selected_uni} for {selected_domains}: "),
+            html.Div(companies_details)
+        ])
+    else:  
+        return html.Div([
+            html.H4(f"Companies linked to {selected_uni} : "),
+            html.Div(companies_details)
+        ])
 
 if __name__ == "__main__":
     app.run_server(debug=True)
