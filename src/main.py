@@ -1,57 +1,82 @@
+import webbrowser
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-import plotly.express as px
-import pandas as pd
+import plotly.graph_objects as go
 import scopes as sc
+import liste_contacts as lc
+import proportion_universite_activite as pua
+import proportion_entreprise_secteurs as pes
 
 # Initialiser l'application Dash
 app = dash.Dash(__name__)
 
-sc=sc.scopes()
-fig=sc.camembert()
-df=sc.get_df()
+# Charger les graphiques au démarrage
+print("Préchargement des graphiques...")
+liste_contact = lc.afficher_liste_contacts()
+print("Liste contacts préchargé")
+figure_prop_ent = pes.afficher_prop_entreprise_secteurs()
+print("Proportion entreprise préchargé")
+figure_prop_uni = pua.afficher_prop_universite_activite()
+print("Proportion universités préchargé")
+scopes = sc.scopes()
+figure_scopes = scopes.camembert()
+print("Scopes préchargé")
 
-app.layout = html.Div([
-    dcc.Graph(
-        id='pie-chart',
-        figure=fig
+# Définir la disposition de l'application
+app.layout = html.Div(children=[
+    dcc.Location(id='url', refresh=False),
+    html.H1(children='Tableau de bord interactif'),
+    dcc.Dropdown(
+        id='chart-type',
+        options=[
+            {'label': 'Contacts', 'value': 'contacts'},
+            {'label': 'Scopes', 'value': 'scopes'},
+            {'label': 'Entreprises', 'value': 'entreprises'},
+            {'label': 'Universités', 'value': 'univ'},
+            {'label': 'Vue globale', 'value': 'global'}
+        ],
+        value='global'
     ),
-    html.Div(id='event-list')
+    html.Div(id='graph-container'),
+    html.Div(id='output-container')
 ])
 
+# Définir le callback pour mettre à jour le graphique en fonction du type de graphique sélectionné
 @app.callback(
-    Output('event-list', 'children'),
-    [Input('pie-chart', 'clickData')]
+    Output('graph-container', 'children'),
+    [Input('chart-type', 'value')]
 )
-
-def display_events(clickData):
-    '''
-    Récupère des données sous la forme {'points':
-    [{'curveNumber': 0, 'label': 'Regional', 'color': '#EF553B', 'value': 32, 
-    'percent': 0.2909090909090909, 'v': 32, 'i': 1, 'pointNumber': 1, 
-    'bbox': {'x0': 456.17786237470426, 'x1': 575.5, 'y0': 137.33337260379534, 'y1': 256.65551022909113}, 
-    'pointNumbers': [1]}]}
-    '''
-    if clickData is None:
-        return "Cliquez sur une part du graphique pour voir les événements associés."
-    else:
-        try:
-            scope = clickData['points'][0]['label']
-            print(f"Nom de la part cliquée: {scope}")
-            infos = sc.get_event(scope)
-            print(infos)
-            items = [html.Li(f"Le partenaire {assoc_scope[1]} a participé à {assoc_scope[2]}") for assoc_scope in infos]
-            return html.Div([
-                html.P(f"Evénements associés au scope {scope}:"),
-                html.Ul(items),
-                html.Br(),  # Ajout d'un retour à la ligne
-                html.P("Cliquez sur une autre part du graphique pour voir plus d'événements.")
-            ])
-        except Exception as e:
-            print(f"Erreur: {e}")
-            return "Erreur lors de la récupération des scopes associés."
+def update_graph(chart_type):
+    if chart_type == 'contacts':
+        print("Contacts sélectionné")
+        return dcc.Graph(figure=liste_contact)
+    elif chart_type == 'scopes':
+        print("Scopes sélectionné")
+        return dcc.Graph(figure=figure_scopes)
+    elif chart_type == 'entreprises':
+        print("Entreprises sélectionné")
+        return dcc.Graph(figure=figure_prop_ent)
+    elif chart_type == 'univ':
+        print("Univ sélectionné")
+        return dcc.Graph(figure=figure_prop_uni)
+    elif chart_type == 'global':
+        print("Vue globale sélectionnée")
+        # Liste des graphiques à afficher pour la vue globale
+        graphs = [
+            #html.Div(dcc.Graph(figure=figure_map_uni), style={'margin-bottom': '20px'}),
+            html.Div(dcc.Graph(figure=figure_scopes), style={'margin-bottom': '20px'}),
+            html.Div(dcc.Graph(figure=figure_prop_ent), style={'margin-bottom': '20px'}),
+            html.Div(dcc.Graph(figure=figure_prop_uni), style={'margin-bottom': '20px'}),
+        ]
+        # Retourne la liste de graphiques pour la vue globale
+        return html.Div(graphs, style={'display': 'block'})
+    
+    return html.Div()  # Valeur par défaut si aucune sélection
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    print("Lancement de l'application Dash DATA732")
+    url="http://127.0.0.1:8051"
+    webbrowser.open(url)
+    app.run(debug=True, port=8051)

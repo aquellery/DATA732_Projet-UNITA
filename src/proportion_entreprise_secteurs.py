@@ -63,5 +63,6 @@ secteurs_count = secteurs_categorises.value_counts().reset_index()
 secteurs_count.columns = ["Secteur", "Nombre"]
 
 # Création du pie chart avec Plotly
-fig = px.pie(secteurs_count, names="Secteur", values="Nombre", title="Proportions des secteurs dans 'S3 LINKED SECTOR (Select)'")
-fig.show()
+def afficher_prop_entreprise_secteurs():
+    fig = px.pie(secteurs_count, names="Secteur", values="Nombre", title="Proportions des secteurs dans 'S3 LINKED SECTOR (Select)'")
+    return fig

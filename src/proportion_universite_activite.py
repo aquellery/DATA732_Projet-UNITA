@@ -37,5 +37,7 @@ partners_count = partners_categorises.value_counts().reset_index()
 partners_count.columns = ["Université", "Nombre"]
 
 # Création du pie chart avec Plotly
-fig = px.pie(partners_count, names="Université", values="Nombre", title="Proportions des universités dans 'PARTNER (select)'")
-fig.show()
+def afficher_prop_universite_activite():
+    fig = px.pie(partners_count, names="Université", values="Nombre", title="Proportions des universités dans 'PARTNER (select)'")
+    return fig
+    #fig.show()

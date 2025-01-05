@@ -1,6 +1,7 @@
 from lecture_excel import get_contact_company_internship, get_contact_tech_transfer, get_contact_incubator
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 dico_tech = get_contact_tech_transfer(['PARTNER','OFFICE/SERVICE NAME','CONTACT PERSON','CONTACT MAIL','OTHER CONTACT DETAILS'])
 dico_company = get_contact_company_internship(['PARTNER','OFFICE/SERVICE NAME','CONTACT PERSON','CONTACT MAIL','OTHER CONTACT DETAILS'])
@@ -49,3 +50,38 @@ def combine_dico():
     return final_dico
 
 #print(combine_dico())
+
+def afficher_liste_contacts():
+    dico=combine_dico()
+
+        # Préparer les données pour le tableau
+    categories = []
+    institutions = []
+    personnes = []
+    emails = []
+    telephones = []
+    
+    for category, insts in dico.items():
+        for institution, details in insts.items():
+            categories.append(category)
+            institutions.append(institution)
+            personnes.append(details[1])
+            emails.append(details[2])
+            telephones.append(details[3])
+    
+    # Créer le tableau
+    fig = go.Figure(data=[go.Table(
+        header=dict(values=['Catégorie', 'Institution', 'Personne', 'Email', 'Téléphone'],
+                    fill_color='paleturquoise',
+                    align='left'),
+        cells=dict(values=[categories, institutions, personnes, emails, telephones],
+                   fill_color='lavender',
+                   align='left'))
+    ])
+    
+    # Ajouter des titres
+    fig.update_layout(
+        title='Liste des personnes par catégorie'
+    )
+
+    return fig
