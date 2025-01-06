@@ -2,12 +2,15 @@ import lecture_excel as le
 import plotly.express as px
 import pandas as pd
 import dash_html_components as html
+from dash.dependencies import Input, Output
+
 
 class scopes:
+    suppress_callback_exceptions=True
     
-    def __init__(self) : 
+    def __init__(self, app) : 
         self.df=pd.DataFrame()
-    
+        self.app=app
     def normaliser_nom(self, nom):
         #Permet d'éviter certaines répétition : ne fonctionne certainement que pour quelques valeurs, il y a certainement des oublis dans la liste
         normalisation = {
@@ -82,21 +85,14 @@ class scopes:
         event_list = list(zip(event['SCOPE (Regional, National, European…)'], event['PARTNER (select)'], event['DISSEMINATION ACTIVITY NAME']))
         return event_list
     
-    def display_events(clickData):
-        '''
-        Récupère des données sous la forme {'points':
-        [{'curveNumber': 0, 'label': 'Regional', 'color': '#EF553B', 'value': 32, 
-        'percent': 0.2909090909090909, 'v': 32, 'i': 1, 'pointNumber': 1, 
-        'bbox': {'x0': 456.17786237470426, 'x1': 575.5, 'y0': 137.33337260379534, 'y1': 256.65551022909113}, 
-        'pointNumbers': [1]}]}
-        '''
+    def display_events(self,clickData):
         if clickData is None:
             return "Cliquez sur une part du graphique pour voir les événements associés."
         else:
             try:
                 scope = clickData['points'][0]['label']
                 print(f"Nom de la part cliquée: {scope}")
-                infos = sc.get_event(scope)
+                infos = self.get_event(scope)
                 print(infos)
                 items = [html.Li(f"Le partenaire {assoc_scope[1]} a participé à {assoc_scope[2]}") for assoc_scope in infos]
                 return html.Div([
@@ -109,9 +105,36 @@ class scopes:
                 print(f"Erreur: {e}")
                 return "Erreur lors de la récupération des scopes associés."
     
-        
-    
-sc=scopes()
-print(sc.get_event('Regional'))
-#sc.camembert()
+    def affichage_camembert(self, dcc):
+        return html.Div([
+            dcc.Graph(
+                id='pie-chart',
+                figure=self.camembert()
+            ),
+            html.Div(id='event-list')
+        ])
 
+    def register_callbacks(self):
+        @self.app.callback(
+            Output('event-list', 'children'),
+            [Input('pie-chart', 'clickData')]
+        )
+        def display_events(clickData):
+            if clickData is None:
+                return "Cliquez sur une part du graphique pour voir les événements associés."
+            else:
+                try:
+                    scope = clickData['points'][0]['label']
+                    print(f"Nom de la part cliquée: {scope}")
+                    infos = self.get_event(scope)
+                    print(infos)
+                    items = [html.Li(f"Le partenaire {assoc_scope[1]} a participé à {assoc_scope[2]}") for assoc_scope in infos]
+                    return html.Div([
+                        html.P(f"Evénements associés au scope {scope}:"),
+                        html.Ul(items),
+                        html.Br(),  # Ajout d'un retour à la ligne
+                        html.P("Cliquez sur une autre part du graphique pour voir plus d'événements.")
+                    ])
+                except Exception as e:
+                    print(f"Erreur: {e}")
+                    return "Erreur lors de la récupération des scopes associés."

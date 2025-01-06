@@ -22,7 +22,7 @@ figure_prop_ent = pes.afficher_prop_entreprise_secteurs()
 print("Proportion entreprise préchargé")
 figure_prop_uni = pua.afficher_prop_universite_activite()
 print("Proportion universités préchargé")
-scopes = sc.scopes()
+scopes = sc.scopes(app)
 figure_scopes = scopes.camembert()
 print("Scopes préchargé")
 map=mudc.show_map()
@@ -35,11 +35,11 @@ app.layout = html.Div(children=[
     dcc.Dropdown(
         id='chart-type',
         options=[
+            {'label': 'Vue globale', 'value': 'global'},
             {'label': 'Contacts', 'value': 'contacts'},
             {'label': 'Scopes', 'value': 'scopes'},
             {'label': 'Companies', 'value': 'entreprises'},
             {'label': 'Universities', 'value': 'univ'},
-            {'label': 'Overall view', 'value': 'global'},
             {'label': 'Map', 'value': 'map'}
         ],
         value='global'
@@ -53,13 +53,14 @@ app.layout = html.Div(children=[
     Output('graph-container', 'children'),
     [Input('chart-type', 'value')]
 )
+
 def update_graph(chart_type):
     if chart_type == 'contacts':
         print("Contacts sélectionné")
         return dcc.Graph(figure=liste_contact)
     elif chart_type == 'scopes':
-        print("Scopes sélectionné")
-        return dcc.Graph(id='scopes-graph', figure=figure_scopes)
+        print("Scopes sélectionné")                
+        return scopes.affichage_camembert(dcc)
     elif chart_type == 'entreprises':
         print("Entreprises sélectionné")
         return dcc.Graph(figure=figure_prop_ent)
@@ -83,28 +84,7 @@ def update_graph(chart_type):
     
     return html.Div()  # Valeur par défaut si aucune sélection
 
-@app.callback(
-    Output('event-container', 'children'),
-    [Input('scopes-graph', 'clickData')]
-)
-def display_events(clickData):
-    if clickData is None:
-        return "Cliquez sur une part du graphique pour voir les événements associés."
-    else:
-        try:
-            scope = clickData['points'][0]['label']
-            print(f"Nom de la part cliquée: {scope}")
-            infos = scopes.get_event(scope)
-            items = [html.Li(f"Le partenaire {assoc_scope[1]} a participé à {assoc_scope[2]}") for assoc_scope in infos]
-            return html.Div([
-                html.P(f"Evénements associés au scope {scope}:"),
-                html.Ul(items),
-                html.Br(),  # Ajout d'un retour à la ligne
-                html.P("Cliquez sur une autre part du graphique pour voir plus d'événements.")
-            ])
-        except Exception as e:
-            print(f"Erreur: {e}")
-            return "Erreur lors de la récupération des scopes associés."
+scopes.register_callbacks()
 
 if __name__ == '__main__':
     print("Lancement de l'application Dash DATA732")
