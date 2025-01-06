@@ -8,6 +8,7 @@ import scopes as sc
 import liste_contacts as lc
 import proportion_universite_activite as pua
 import proportion_entreprise_secteurs as pes
+import map_uni_domains_companies as mudc
 
 # Initialiser l'application Dash
 app = dash.Dash(__name__)
@@ -23,6 +24,8 @@ print("Proportion universités préchargé")
 scopes = sc.scopes()
 figure_scopes = scopes.camembert()
 print("Scopes préchargé")
+map=mudc.show_map()
+print("Map préchargée")
 
 # Définir la disposition de l'application
 app.layout = html.Div(children=[
@@ -33,9 +36,10 @@ app.layout = html.Div(children=[
         options=[
             {'label': 'Contacts', 'value': 'contacts'},
             {'label': 'Scopes', 'value': 'scopes'},
-            {'label': 'Entreprises', 'value': 'entreprises'},
-            {'label': 'Universités', 'value': 'univ'},
-            {'label': 'Vue globale', 'value': 'global'}
+            {'label': 'Companies', 'value': 'entreprises'},
+            {'label': 'Universities', 'value': 'univ'},
+            {'label': 'Overall view', 'value': 'global'},
+            {'label': 'Map', 'value': 'map'}
         ],
         value='global'
     ),
@@ -72,6 +76,9 @@ def update_graph(chart_type):
         ]
         # Retourne la liste de graphiques pour la vue globale
         return html.Div(graphs, style={'display': 'block'})
+    elif chart_type == 'map':
+        print("Map sélectionné")
+        return map.layout
     
     return html.Div()  # Valeur par défaut si aucune sélection
 
