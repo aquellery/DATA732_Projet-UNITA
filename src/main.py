@@ -11,6 +11,7 @@ import proportion_entreprise_secteurs as pes
 
 # Initialiser l'application Dash
 app = dash.Dash(__name__)
+suppress_callback_exceptions=True
 
 # Charger les graphiques au démarrage
 print("Préchargement des graphiques...")
@@ -54,7 +55,7 @@ def update_graph(chart_type):
         return dcc.Graph(figure=liste_contact)
     elif chart_type == 'scopes':
         print("Scopes sélectionné")
-        return dcc.Graph(figure=figure_scopes)
+        return dcc.Graph(id='scopes-graph', figure=figure_scopes)
     elif chart_type == 'entreprises':
         print("Entreprises sélectionné")
         return dcc.Graph(figure=figure_prop_ent)
@@ -74,6 +75,29 @@ def update_graph(chart_type):
         return html.Div(graphs, style={'display': 'block'})
     
     return html.Div()  # Valeur par défaut si aucune sélection
+
+@app.callback(
+    Output('event-container', 'children'),
+    [Input('scopes-graph', 'clickData')]
+)
+def display_events(clickData):
+    if clickData is None:
+        return "Cliquez sur une part du graphique pour voir les événements associés."
+    else:
+        try:
+            scope = clickData['points'][0]['label']
+            print(f"Nom de la part cliquée: {scope}")
+            infos = scopes.get_event(scope)
+            items = [html.Li(f"Le partenaire {assoc_scope[1]} a participé à {assoc_scope[2]}") for assoc_scope in infos]
+            return html.Div([
+                html.P(f"Evénements associés au scope {scope}:"),
+                html.Ul(items),
+                html.Br(),  # Ajout d'un retour à la ligne
+                html.P("Cliquez sur une autre part du graphique pour voir plus d'événements.")
+            ])
+        except Exception as e:
+            print(f"Erreur: {e}")
+            return "Erreur lors de la récupération des scopes associés."
 
 if __name__ == '__main__':
     print("Lancement de l'application Dash DATA732")
