@@ -88,13 +88,13 @@ def update_graph(chart_type):
             html.Div(dcc.Graph(figure=figure_scopes), style={'margin-bottom': '20px'}),
             html.Div(dcc.Graph(figure=figure_prop_ent), style={'margin-bottom': '20px'}),
             html.Div(dcc.Graph(figure=figure_prop_uni), style={'margin-bottom': '20px'}),
-            html.Div(figure_map, style={'margin-bottom': '20px'})   
+            html.Div(dcc.Graph(figure=figure_map), style={'margin-bottom': '20px'})   
         ]
         # Retourne la liste de graphiques pour la vue globale
         return html.Div(graphs, style={'display': 'block'})
     elif chart_type == 'map':
         print("Map sélectionné")
-        return map
+        return dcc.Graph(figure=figure_map)
     
     return html.Div()  # Valeur par défaut si aucune sélection
 
