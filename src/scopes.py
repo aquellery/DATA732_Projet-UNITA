@@ -85,26 +85,6 @@ class scopes:
         event_list = list(zip(event['SCOPE (Regional, National, European…)'], event['PARTNER (select)'], event['DISSEMINATION ACTIVITY NAME']))
         return event_list
     
-    def display_events(self,clickData):
-        if clickData is None:
-            return "Cliquez sur une part du graphique pour voir les événements associés."
-        else:
-            try:
-                scope = clickData['points'][0]['label']
-                print(f"Nom de la part cliquée: {scope}")
-                infos = self.get_event(scope)
-                print(infos)
-                items = [html.Li(f"Le partenaire {assoc_scope[1]} a participé à {assoc_scope[2]}") for assoc_scope in infos]
-                return html.Div([
-                    html.P(f"Evénements associés au scope {scope}:"),
-                    html.Ul(items),
-                    html.Br(),  # Ajout d'un retour à la ligne
-                    html.P("Cliquez sur une autre part du graphique pour voir plus d'événements.")
-                ])
-            except Exception as e:
-                print(f"Erreur: {e}")
-                return "Erreur lors de la récupération des scopes associés."
-    
     def affichage_camembert(self, dcc):
         return html.Div([
             dcc.Graph(
@@ -121,19 +101,19 @@ class scopes:
         )
         def display_events(clickData):
             if clickData is None:
-                return "Cliquez sur une part du graphique pour voir les événements associés."
+                return "Click on a part of the graph to see the associated events."
             else:
                 try:
                     scope = clickData['points'][0]['label']
                     print(f"Nom de la part cliquée: {scope}")
                     infos = self.get_event(scope)
                     print(infos)
-                    items = [html.Li(f"Le partenaire {assoc_scope[1]} a participé à {assoc_scope[2]}") for assoc_scope in infos]
+                    items = [html.Li(f"The partner {assoc_scope[1]} took part in {assoc_scope[2]}") for assoc_scope in infos]
                     return html.Div([
-                        html.P(f"Evénements associés au scope {scope}:"),
+                        html.P(f"Events associated with the scope  {scope}:"),
                         html.Ul(items),
                         html.Br(),  # Ajout d'un retour à la ligne
-                        html.P("Cliquez sur une autre part du graphique pour voir plus d'événements.")
+                        html.P("Click on another part of the graph to see more events.")
                     ])
                 except Exception as e:
                     print(f"Erreur: {e}")

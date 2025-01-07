@@ -71,7 +71,7 @@ def afficher_liste_contacts():
     
     # Créer le tableau
     fig = go.Figure(data=[go.Table(
-        header=dict(values=['Catégorie', 'Institution', 'Personne', 'Email', 'Téléphone'],
+        header=dict(values=['Category', 'Institution', 'Contact', 'Email', 'Phone'],
                     fill_color='paleturquoise',
                     align='left'),
         cells=dict(values=[categories, institutions, personnes, emails, telephones],
@@ -81,7 +81,7 @@ def afficher_liste_contacts():
     
     # Ajouter des titres
     fig.update_layout(
-        title='Liste des personnes par catégorie'
+        title='List of contacts by category',
     )
 
     return fig
