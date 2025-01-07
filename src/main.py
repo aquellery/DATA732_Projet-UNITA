@@ -42,7 +42,6 @@ app.layout = html.Div(children=[
             {'label': 'Contacts', 'value': 'contacts'},
             {'label': 'Scopes', 'value': 'scopes'},
             {'label': 'Companies', 'value': 'entreprises'},
-            {'label': 'Universities', 'value': 'univ'},
             {'label': 'Map of Univerties by Domain', 'value': 'map'}
         ],
         value='global'
@@ -99,6 +98,87 @@ def update_graph(chart_type):
     return html.Div()  # Valeur par défaut si aucune sélection
 
 scopes.register_callbacks()
+
+# Callback pour la carte
+@app.callback(
+    Output('map_display', 'figure'),
+    [Input('domain_choice', 'value')]
+)
+def update_map(selected_domains):
+    filtered_data=mudc.filter_uni_by_domain(selected_domains, all_data)
+    if 'latitude' not in filtered_data.columns or 'longitude' not in filtered_data.columns:
+        print("Error: 'latitude' or 'longitude' columns are missing ")
+        return {}
+    
+    # display uni based on selected domain
+    if not selected_domains or 'All' in selected_domains:  #if displaying all domains
+        fig = px.scatter_mapbox(
+            filtered_data,
+            lat='latitude',
+            lon='longitude',
+            text='Institution Name',
+            color='Institution Name',
+            zoom=3,
+            title="Universities by Domains",
+            hover_data={
+                "English Name": True,
+                "latitude": False, # we don't want this data in the info box
+                "longitude": False # we don't want this data in the info box
+            }
+        )
+    else:
+        fig=px.scatter_mapbox(
+            filtered_data,
+            lat='latitude',
+            lon='longitude',
+            text='Institution Name',
+            color='Institution Name',
+            zoom=3,
+            title="Universities by Domains",
+            hover_data={
+                "English Name": True,
+                "Domain": True,
+                "Contact Person": True,
+                "Contact Mail": True,
+                "Other Contact Details": True,
+                "latitude": False, # we don't want this data in the info box
+                "longitude": False # we don't want this data in the info box
+            }
+        )
+    fig.update_layout(
+        mapbox_style="carto-positron",
+        mapbox_center={'lat':centre_lat, 'lon':centre_lon},
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        dragmode="zoom",
+        hovermode='closest',
+        showlegend=False, # we don't need to have the name of the universities since they are already on the map
+    )
+    return fig
+# Callback pour afficher les détails des universités
+@app.callback(
+    Output('university_details', 'children'),
+    [Input('map_display', 'clickData'), Input('domain_choice', 'value')]
+)
+def display_university_info(clickData, selected_domains):
+    if clickData is None:
+        return "Select a domain and click on a university to see the linked companies."
+    selected_uni=clickData['points'][0]['text']
+    companies_info=df_companies[df_companies['PARTNER (SELECT)']==selected_uni]
+    if selected_domains and 'All' not in selected_domains:
+        companies_info=companies_info[companies_info['S3 LINKED SECTOR (Select)'].isin(selected_domains)]
+    if companies_info.empty:
+        return f"No companies found for {selected_uni} in the selected domain(s): {', '.join(selected_domains)}." if selected_domains else f"No companies found for {selected_uni}."
+    companies_details=[]
+    for _, row in companies_info.iterrows():
+        company_info = html.Div([
+            html.H4(row['NAME OF THE SPIN-OFF']),
+            html.P(f"Website: {row['WEBSITE']}" if pd.notna(row['WEBSITE']) else "Website: Unable"),
+            html.P(f"Contact: {row['CONTACT PERSON']} ({row['CONTACT MAIL']})"),
+            html.P(f"Activity: {row['ACTIVITY OF THE SPIN-OFF (explain)']}")
+        ], style={'margin-bottom': '20px'})
+        companies_details.append(company_info)
+    return html.Div(companies_details)
+
 
 if __name__ == '__main__':
     print("Lancement de l'application Dash DATA732")
