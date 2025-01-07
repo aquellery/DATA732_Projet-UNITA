@@ -28,7 +28,7 @@ scopes = sc.scopes(app)
 figure_scopes = scopes.camembert()
 print("Scopes préchargé")
 all_data, df_companies, data_domain, centre_lat, centre_lon=mudc.get_all_data_map()
-map=mudc.show_map(data_domain)
+figure_map=mudc.show_map(data_domain)
 print("Map préchargée")
 
 # Définir la disposition de l'application
@@ -88,6 +88,7 @@ def update_graph(chart_type):
             html.Div(dcc.Graph(figure=figure_scopes), style={'margin-bottom': '20px'}),
             html.Div(dcc.Graph(figure=figure_prop_ent), style={'margin-bottom': '20px'}),
             html.Div(dcc.Graph(figure=figure_prop_uni), style={'margin-bottom': '20px'}),
+            html.Div(figure_map, style={'margin-bottom': '20px'})   
         ]
         # Retourne la liste de graphiques pour la vue globale
         return html.Div(graphs, style={'display': 'block'})
