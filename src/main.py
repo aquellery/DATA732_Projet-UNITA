@@ -34,11 +34,11 @@ print("Map préchargée")
 # Définir la disposition de l'application
 app.layout = html.Div(children=[
     dcc.Location(id='url', refresh=False),
-    html.H1(children='Tableau de bord interactif'),
+    html.H1(children='Dashboard - UNITA'),
     dcc.Dropdown(
         id='chart-type',
         options=[
-            {'label': 'Vue globale', 'value': 'global'},
+            {'label': 'Overall view', 'value': 'global'},
             {'label': 'Contacts', 'value': 'contacts'},
             {'label': 'Scopes', 'value': 'scopes'},
             {'label': 'Companies', 'value': 'entreprises'},
@@ -69,19 +69,19 @@ app.layout = html.Div(children=[
 
 def update_graph(chart_type):
     if chart_type == 'contacts':
-        print("Contacts sélectionné")
+        print("Contacts selectionned")
         return dcc.Graph(figure=liste_contact)
     elif chart_type == 'scopes':
-        print("Scopes sélectionné")                
+        print("Scopes selectionned")                
         return scopes.affichage_camembert(dcc)
     elif chart_type == 'entreprises':
-        print("Entreprises sélectionné")
+        print("Companies selectionned")
         return dcc.Graph(figure=figure_prop_ent)
     elif chart_type == 'univ':
-        print("Univ sélectionné")
+        print("Univ selectionned")
         return dcc.Graph(figure=figure_prop_uni)
     elif chart_type == 'global':
-        print("Vue globale sélectionnée")
+        print("Overall view selectionned")
         # Liste des graphiques à afficher pour la vue globale
         graphs = [
             #html.Div(dcc.Graph(figure=figure_map_uni), style={'margin-bottom': '20px'}),

@@ -141,6 +141,13 @@ def get_all_data_map():
     
 def show_map(data_domain):
     return html.Div([
+        # title
+        html.Div([
+            html.H2("Interactive Map of Universities"),
+        ]),
+        
+        # content
+        html.Div([
         html.Div([
             dcc.Dropdown(
                 id='domain_choice',
@@ -158,3 +165,4 @@ def show_map(data_domain):
             html.Div(id='university_details', style={'margin-left': '20px'})  # Infos de l'université à droite
         ], style={'width': '28%', 'display': 'inline-block', 'vertical-align': 'top'})  # Détails à droite
     ], style={'display': 'flex', 'flex-direction': 'row', 'justify-content': 'space-between'})
+    ])
